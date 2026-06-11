@@ -1,0 +1,40 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+	 
+    # Set custom error pages
+    ErrorDocument 403 /error/403.html
+    ErrorDocument 404 /error/404.html
+
+    # Deny access to sensitive files (show 403 Forbidden)
+    RewriteRule ^(\.env|\.env\.example|phpunit\.xml|phpunit\.xml\.dist|composer\.(json|lock|phar)|package(-lock)?\.json|\.gitignore|\.gitattributes)$ - [R=403,L]
+    RewriteRule \.(bak|config|sql|log|ini|sh|inc|swp|dist|git|env)$ - [R=403,L]
+
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    # Rewrite build assets to public
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^build/(.*)$ public/build/$1 [L]
+
+    # Remove public prefix for URLs
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^public/(.*)$ $1 [L,NC]
+
+    # Pass authorization headers
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Remove trailing slash
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Redirect all other requests to index.php
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>

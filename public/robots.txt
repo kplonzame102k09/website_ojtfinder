@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+
+# Auth pages (no SEO value)
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Private/authenticated pages
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /messages
+Disallow: /notifications
+Disallow: /notification
+Disallow: /settings
+Disallow: /student/requirements
+
+# Email verification
+Disallow: /email/verify
+
+# Laravel internals
+Disallow: /api/
+
+Sitemap: https://ojtfinder.42web.io/public/sitemap.xml
