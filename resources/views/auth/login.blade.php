@@ -1,155 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ 'public/of_logo.png' }}?v=1">
-  <meta name="google-site-verification" content="WAfQ8Ukar-cZVK8eQBJ2MjheJGQuAveD79Ny6ctEXtQ" />
-  <meta name="description" content="Find OJT and internship opportunities
-  near you. Browse hundreds of companies offering on-the-job training
-  for Filipino students.">
-  <meta name="keywords" content="OJT, internship, on-the-job training,
-  Philippines, student jobs">
-  <meta property="og:title" content="ojtFinder | Find OJT Internships">
-  <meta property="og:description" content="Browse OJT opportunities near you">
-  <meta property="og:image" content="https://ojtfinder.42web.io/public/of_logo.png">
-  <meta property="og:url" content="https://ojtfinder.42web.io">
-  <meta property="og:type" content="website">
+  @include('partials.meta')
   <title>ojtFinder | Login</title>
 
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZEMJ5KJY75"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  @include('partials.gtag')
 
-  gtag('config', 'G-ZEMJ5KJY75');
-</script>
   @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-    @keyframes pulse {
+        .bg-main {
+            background: radial-gradient(circle at top right, #070707, #0f172a);
+            background-attachment: fixed;
+        }
+
+        .map-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.6s ease-out forwards; }
+
+        @keyframes scaleUp {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-scaleUp { animation: scaleUp 0.4s ease-out forwards; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .marker {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+
+        .marker::after {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border: 1px solid #3b82f6;
+            border-radius: 50%;
+            animation: markerPulse 3s infinite;
+            opacity: 0;
+        }
+
+        @keyframes markerPulse {
             0% { transform: scale(0.5); opacity: 0.8; }
             100% { transform: scale(2.5); opacity: 0; }
         }
+
+        .page-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top right, #070707, #0f172a);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
 	</style>
 </head>
-<body class="bg-slate-900 flex items-center justify-center min-h-screen font-sans relative overflow-hidden">
-  <div id="login-loader" style="display: none;" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md">
-      <div class="flex flex-col items-center gap-4">
-          <div class="h-16 w-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-indigo-400 font-black tracking-widest text-sm uppercase animate-pulse">Authenticating...</p>
-      </div>
-  </div>
+<body class="bg-main text-slate-200 antialiased relative min-h-screen">
 
-    <div class="absolute inset-0 backdrop-blur-sm z-0"></div>
-
-  <div class="relative mx-auto max-w-md w-full bg-slate-800 rounded-xl shadow-2xl overflow-hidden animate-fadeIn">
-    <div class="px-8 py-6 text-center bg-slate-900">
-      <h2 class="font-extrabold text-4xl text-white flex items-center justify-center gap-1">
-    		<span class="text-blue-500">ojt</span>Finder<img src="of_logo.png" class="w-10 h-10 inline animate-pulse">
-	  </h2>
-      <h4 class="text-indigo-200 text-sm italic mt-2">
-        Find your path. Build your Future.
-      </h4>
+    <!-- Page Loader -->
+    <div id="pageLoader" class="page-loader">
+        <div class="flex flex-col items-center gap-4">
+            <div class="spinner"></div>
+            <p class="text-blue-400 font-black tracking-widest text-sm uppercase animate-pulse">Loading...</p>
+        </div>
     </div>
 
-    <div class="px-8 py-6 space-y-5">
-      @if ($errors->any())
-        <div class="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-sm font-medium">
-            <strong>Whoops!</strong> Something went wrong.
-        </div>
-      @endif
-
-      <form method="POST" action="{{ route('login') }}">
-        @csrf
-        <div>
-          <input type="email" name="email" value="{{ old('email') }}" placeholder="Your Email"
-            class="w-full px-4 py-3 rounded-lg bg-slate-700 border {{ $errors->has('email') ? 'border-red-500' : 'border-slate-600' }} text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" required autofocus>
-
-          @error('email')
-            <p class="text-red-500 text-xs mt-1 font-semibold">{{ $message }}</p>
-          @enderror
-        </div>
-
-        <div class="mt-4 relative">
-          <input id="password" type="password" name="password" placeholder="Password"
-            class="w-full px-4 py-3 rounded-lg bg-slate-700 border {{ $errors->has('password') ? 'border-red-500' : 'border-slate-600' }} text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" required>
-
-    	@error('password')
-            <p class="text-red-500 text-xs mt-1 font-semibold">{{ $message }}</p>
-          @enderror
-
-          <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-400 transition focus:outline-none px-2">
-              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12.083a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-              </svg>
-          </button>
-        </div>
-
-        <div class="flex items-center space-x-2 mt-3 text-slate-200">
-          <input type="checkbox" name="remember" id="remember"
-            {{ old('remember') ? 'checked' : '' }}
-            class="rounded border-slate-600 text-indigo-500 focus:ring-indigo-500 cursor-pointer">
-          <label for="remember" class="text-slate-200 text-sm cursor-pointer">Remember Me</label>
-        </div>
-
-        <div class="mt-5">
-          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition transform hover:scale-105 shadow-lg">
-            Log In
-          </button>
-        </div>
-
-        <div class="text-center mt-3">
-          <a href="{{ route('password.request') }}" class="text-indigo-400 hover:text-indigo-300 hover:underline text-sm transition">Forgot Password?</a>
-        </div>
-      </form>
-
-      <div class="text-center mt-4">
-        <p class="text-slate-300 text-sm">
-          Don’t have an account?
-          <a href="{{ route('signup') }}" class="font-semibold text-indigo-500 hover:text-indigo-400 hover:underline transition">Sign Up</a>
-        </p>
-      </div>
+    <div class="map-overlay">
+        <div class="marker" style="top: 20%; left: 15%;"></div>
+        <div class="marker" style="top: 60%; left: 80%; animation-delay: 1s;"></div>
+        <div class="marker" style="top: 40%; left: 50%; animation-delay: 2s;"></div>
     </div>
-  </div>
 
-  @if (session('throttleSeconds'))
-    <div id="throttleModal" class="fixed inset-0 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm z-[110]">
-        <div class="bg-slate-800 border border-red-500/50 rounded-xl shadow-2xl max-w-sm w-full p-8 text-center animate-scaleUp">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-red-500/10 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2zm-10 0V7a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3h12a3 3 0 003-3v-8a3 3 0 00-3-3H9z" />
-                </svg>
+    <div id="login-loader" style="display: none;" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md">
+        <div class="flex flex-col items-center gap-4">
+            <div class="h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-blue-400 font-black tracking-widest text-sm uppercase animate-pulse">Authenticating...</p>
+        </div>
+    </div>
+
+    <div class="relative z-10 min-h-screen flex">
+        <!-- Left Side - Design/Branding -->
+        <div class="hidden lg:flex lg:w-1/2 flex-col justify-center items-center px-12 py-8 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent"></div>
+            <div class="relative z-10 text-center max-w-lg">
+                <a href="/" class="inline-flex items-center gap-2 mb-8">
+                    <span class="text-4xl font-bold text-white">ojt<span class="text-blue-500">Finder</span></span>
+                </a>
+                <h1 class="text-5xl font-extrabold text-white mb-6 leading-tight">
+                    Welcome back<br>
+                    <span class="text-blue-500">to ojtFinder</span>
+                </h1>
+                <p class="text-xl text-slate-300 mb-8 leading-relaxed">
+                    Continue your journey to finding the perfect OJT opportunity. Access your dashboard and connect with top companies.
+                </p>
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="glass-card p-6 rounded-2xl text-center">
+                        <p class="text-3xl font-bold text-white mb-1">1.2k+</p>
+                        <p class="text-sm text-blue-400 uppercase font-bold tracking-widest">Students</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl text-center">
+                        <p class="text-3xl font-bold text-white mb-1">450+</p>
+                        <p class="text-sm text-blue-400 uppercase font-bold tracking-widest">Companies</p>
+                    </div>
+                </div>
+                <div class="space-y-4 text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <span class="text-slate-300">Access your applications</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <span class="text-slate-300">Connect with recruiters</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <span class="text-slate-300">Track your progress</span>
+                    </div>
+                </div>
             </div>
-            <h3 class="text-2xl font-bold text-white mb-2">Security Lockout</h3>
-            <p class="text-slate-300 mb-6">Too many failed attempts. For your security, login is disabled for:</p>
+        </div>
 
-            <div class="text-5xl font-black text-indigo-500 mb-6 tracking-widest" id="countdownTimer">
-                {{ session('throttleSeconds') }}s
+        <!-- Right Side - Form -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
+            <div class="w-full max-w-2xl">
+                <!-- Mobile Logo -->
+                <div class="lg:hidden text-center mb-8">
+                    <a href="/" class="inline-flex items-center gap-2">
+                        <span class="text-3xl font-bold text-white">ojt<span class="text-blue-500">Finder</span></span>
+                    </a>
+                </div>
+
+                <div class="w-full animate-fadeIn">
+                    <div class="mb-10">
+                        <h1 class="text-3xl font-bold text-white mb-3">Welcome back</h1>
+                        <p class="text-slate-400 text-lg">Sign in to continue to your account</p>
+                    </div>
+
+                    @if ($errors->any())
+                        <div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm font-medium mb-6">
+                            <strong>Whoops!</strong> Something went wrong.
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('login') }}">
+                        @csrf
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-3">Email</label>
+                                <input type="email" name="email" value="{{ old('email') }}" placeholder="your@email.com"
+                                    class="w-full px-5 py-4 rounded-lg bg-white/5 border {{ $errors->has('email') ? 'border-red-500' : 'border-white/10' }} text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition" required autofocus>
+
+                                @error('email')
+                                    <p class="text-red-400 text-xs mt-1 font-semibold">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-3">Password</label>
+                                <div class="relative">
+                                    <input id="password" type="password" name="password" placeholder="••••••••"
+                                        class="w-full px-5 py-4 rounded-lg bg-white/5 border {{ $errors->has('password') ? 'border-red-500' : 'border-white/10' }} text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition" required>
+
+                                    @error('password')
+                                        <p class="text-red-400 text-xs mt-1 font-semibold">{{ $message }}</p>
+                                    @enderror
+
+                                    <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-400 transition focus:outline-none px-2">
+                                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12.083a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" name="remember" id="remember"
+                                        {{ old('remember') ? 'checked' : '' }}
+                                        class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer">
+                                    <label for="remember" class="text-slate-300 text-sm cursor-pointer">Remember me</label>
+                                </div>
+
+                                <a href="{{ route('password.request') }}" class="text-sm text-blue-400 hover:text-blue-300 transition">Forgot password?</a>
+                            </div>
+
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-lg transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40">
+                                Sign In
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-8 text-center">
+                        <p class="text-slate-400 text-sm">
+                            Don't have an account?
+                            <a href="{{ route('signup') }}" class="font-semibold text-blue-400 hover:text-blue-300 transition">Sign up</a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Back to Home -->
+                <div class="text-center mt-8">
+                    <a href="/" class="text-slate-500 hover:text-slate-300 text-sm transition">← Back to home</a>
+                </div>
             </div>
-
-            <p class="text-xs text-slate-500 uppercase tracking-tighter">Please wait until the timer hits zero</p>
         </div>
     </div>
-  @endif
 
-  @if (session('success'))
-    <div id="successModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div class="bg-slate-800 rounded-xl shadow-xl max-w-sm w-full p-6 text-center animate-scaleUp">
-        <h3 class="text-2xl font-bold text-white mb-2">Success 🎉</h3>
-        <p class="text-slate-300 mb-4">{{ session('success') }}</p>
-        <button onclick="closeModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg w-full transition transform hover:scale-105">
-          OK
-        </button>
-      </div>
-    </div>
-  @endif
+    @if (session('throttleSeconds'))
+        <div id="throttleModal" class="fixed inset-0 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm z-[110]">
+            <div class="bg-slate-900 border border-red-500/30 rounded-xl shadow-2xl max-w-sm w-full p-8 text-center animate-scaleUp">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-red-500/10 rounded-full mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2zm-10 0V7a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3h12a3 3 0 003-3v-8a3 3 0 00-3-3H9z" />
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Security Lockout</h3>
+                <p class="text-slate-300 mb-6">Too many failed attempts. For your security, login is disabled for:</p>
+
+                <div class="text-5xl font-black text-blue-500 mb-6 tracking-widest" id="countdownTimer">
+                    {{ session('throttleSeconds') }}s
+                </div>
+
+                <p class="text-xs text-slate-500 uppercase tracking-tighter">Please wait until the timer hits zero</p>
+            </div>
+        </div>
+    @endif
+
+    @if (session('success'))
+        <div id="successModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+            <div class="bg-slate-900 rounded-xl shadow-xl max-w-sm w-full p-6 text-center animate-scaleUp">
+                <h3 class="text-2xl font-bold text-white mb-2">Success 🎉</h3>
+                <p class="text-slate-300 mb-4">{{ session('success') }}</p>
+                <button onclick="closeModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg w-full transition-all shadow-lg shadow-blue-500/25">
+                    OK
+                </button>
+            </div>
+        </div>
+    @endif
 
 <script>
     function closeModal(){
-      document.getElementById('successModal').style.display = 'none';
+        document.getElementById('successModal').style.display = 'none';
     }
 
     const loginForm = document.querySelector('form');
@@ -160,10 +297,6 @@
         const btn = this.querySelector('button[type="submit"]');
         if(btn) btn.disabled = true;
     });
-
-    function closeModal(){
-        document.getElementById('successModal').style.display = 'none';
-    }
 
     function togglePassword() {
         const passwordInput = document.getElementById('password');
@@ -193,20 +326,19 @@
             }, 1000);
         })();
     @endif
+
+    window.addEventListener('load', function() {
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                loader.style.transition = 'opacity 0.5s ease-out';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 500);
+            }, 500);
+        }
+    });
   </script>
-
-  <style>
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn { animation: fadeIn 0.6s ease-out forwards; }
-
-    @keyframes scaleUp {
-      from { transform: scale(0.8); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    .animate-scaleUp { animation: scaleUp 0.4s ease-out forwards; }
-  </style>
 </body>
 </html>

@@ -18,12 +18,9 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\LegalController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\ImageController;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\StudentRequirementController;
-use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\AdminController;
 use Illuminate\Http\Request;
 use Spatie\Sitemap\Sitemap;
@@ -40,7 +37,7 @@ Route::get('/', function () {
     if (auth()->check()) {
         return redirect()->route('home'); 
     }
-    return redirect()->route('home'); 
+    return view('landing');
 })->name('landing');
 
 //==== Authentication Routes ====//
@@ -70,6 +67,7 @@ Route::post('/update-role', [ProfileController::class, 'updateRole'])->name('use
 //=====================//
 
 //==== Payment Method ====//
+// Payment method routes commented out - can be uncommented when needed
 //Route::post('/gcash/create', [PaymentMethodController::class, 'createGcash'])->name('gcash.create');
 // Route::get('/payment_method', function () {
 //         return view('pages.payment_method');
@@ -102,15 +100,17 @@ Route::get('public/sitemap.xml', function () {
         ->setChangeFrequency('yearly'));
 
     // ── Dynamic Company Pages ────────────────────────────────────────
-    \App\Models\Company::all()->each(function ($company) use ($sitemap) {
-        $sitemap->add(Url::create("/companies/{$company->id}")
-            ->setLastModificationDate($company->updated_at)
-            ->setPriority(0.9)
-            ->setChangeFrequency('weekly'));
-    });
+    // Note: Currently no public route exists for individual company pages
+    // Uncomment when company profile routes are added
+    // Company::all()->each(function ($company) use ($sitemap) {
+    //     $sitemap->add(Url::create("/companies/{$company->id}")
+    //         ->setLastModificationDate($company->updated_at)
+    //         ->setPriority(0.9)
+    //         ->setChangeFrequency('weekly'));
+    // });
 
     // ── Dynamic User Profile Pages ───────────────────────────────────
-    \App\Models\User::whereNotNull('slug')
+    User::whereNotNull('slug')
         ->where('role', '!=', 'admin') // exclude admin profile
         ->each(function ($user) use ($sitemap) {
             $sitemap->add(Url::create("/profile/{$user->slug}")
@@ -134,32 +134,32 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.user.delete');
     Route::delete('/admin/companies/{company}', [AdminController::class, 'destroyCompany'])->name('admin.company.delete');
     Route::delete('/admin/posts/{post}', [AdminController::class, 'destroyPost'])->name('admin.post.delete');
-Route::get('/company-file/{company}/{path}', function ($companyId, $path) {
-    // 1. Authorization Check
-    if (Auth::id() !== 1) {
-        abort(403, 'Unauthorized');
-    }
 
-    // 2. Prevent path traversal
-    if (str_contains($path, '..')) {
-        abort(403, 'Invalid path');
-    }
+    //==== Company File Access (Admin Only) ====//
+    Route::get('/company-file/{company}/{path}', function ($company, $path) {
+        // 1. Authorization Check - check if user is admin
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
 
-    // 3. InfinityFree specific pathing
-    // We use base_path() to ensure we stay within the htdocs/laravel_core (or htdocs) jail
-    $fullPath = base_path('storage/app/public/' . $path);
+        // 2. Prevent path traversal
+        if (str_contains($path, '..')) {
+            abort(403, 'Invalid path');
+        }
 
-    // 4. File existence check
-    if (!file_exists($fullPath)) {
-        // Debugging tip: If it fails, uncomment the next line to see where it's looking
-        return response()->json(['looking_at' => $fullPath]); 
-        abort(404, 'File not found');
-    }
+        // 3. InfinityFree specific pathing
+        // We use base_path() to ensure we stay within the htdocs/laravel_core (or htdocs) jail
+        $fullPath = base_path('storage/app/public/' . $path);
 
-    // 5. Return the file
-    return response()->file($fullPath);
+        // 4. File existence check
+        if (!file_exists($fullPath)) {
+            abort(404, 'File not found');
+        }
 
-})->where('path', '.*')->name('company.file');
+        // 5. Return the file
+        return response()->file($fullPath);
+
+    })->where('path', '.*')->name('company.file');
 });
 //=======================//
 
@@ -190,7 +190,7 @@ Route::middleware(['auth', 'verified', 'restrict.guest'])->group(function(){
     Route::get('/dashboard', [CompanyDashboardController::class, 'index'])->name('company_dashboard');
     Route::put('/company/logo', [CompanyDashboardController::class, 'updateLogo'])->name('company.logo.update');
     Route::put('/company/details', [CompanyDashboardController::class, 'updateDetails'])->name('company.details.update');
-    Route::patch('/applications/{application}/status', [App\Http\Controllers\CompanyDashboardController::class, 'updateStatus'])->name('applications.update-status');
+    Route::patch('/applications/{application}/status', [CompanyDashboardController::class, 'updateStatus'])->name('applications.update-status');
     
     //==== Messaging System ====//
     Route::get('/messages', [MessagesController::class, 'index'])->name('messages.index');
@@ -198,7 +198,7 @@ Route::middleware(['auth', 'verified', 'restrict.guest'])->group(function(){
     Route::post('/messages/{user:slug}/send', [MessagesController::class, 'send'])->name('messages.send');
     
     //==== Notifications Group ====//
-    Route::middleware('auth')->get('/notifications/counts', function () {
+    Route::get('/notifications/counts', function () {
         return response()->json(['unreadNotifications' => auth()->user()->unreadNotifications()->count(),
             'unreadMessages' => auth()->user()->receivedMessages()->whereNull('read_at')->count(),
         ]);
@@ -207,13 +207,17 @@ Route::middleware(['auth', 'verified', 'restrict.guest'])->group(function(){
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
     Route::get('/notifications/{id}/read', [NotificationController::class, 'readAndRedirect'])->name('notifications.readAndRedirect');
 
-    //Route::middleware(['auth'])->group(function () {
+    //==== Applications ====//
     Route::post('/applications/store', [ApplicationController::class, 'store'])->name('applications.store');
-    //});
-    
+
     //==== Image Display Route (for both profile pictures and company logos) ====//
     Route::get('/display-image/{path}', [ImageController::class, 'show'])->where('path', '.*')->name('image.display');
-    
+
+    //==== Settings ====//
+    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::put('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+
 });
 //==========================================================================//
 
@@ -233,21 +237,17 @@ Route::get('/legal/{type}', [LegalController::class, 'show'])->name('legal.show'
 
 //==== The Notice (The page users see saying "Verify your email") ====//
 Route::get('/email/verify', function () {
-    return view('auth.verify_email');})->middleware('auth')->name('verification.notice');
+    return view('auth.verify_email');
+})->middleware('auth')->name('verification.notice');
 
 //==== The Link (The route handled when they click the email link) ====//
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
     return redirect('/home');
-    })->middleware(['auth', 'signed'])->name('verification.verify');
+})->middleware(['auth', 'signed'])->name('verification.verify');
 
 //==== Resending the email ====//
 Route::post('/email/verification-notification', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
     return back()->with('status', 'verification-link-sent');
-    })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-
-    //Settings
-Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
-Route::put('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
-Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');

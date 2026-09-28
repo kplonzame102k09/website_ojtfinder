@@ -1,10 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta name="google-site-verification" content="WAfQ8Ukar-cZVK8eQBJ2MjheJGQuAveD79Ny6ctEXtQ" />
-    	<meta name="description" content="OJT Finder - The best platform for students to find On-the-Job Training opportunities and internships. Connect with companies today!">
+        @include('partials.meta')
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Fonts -->

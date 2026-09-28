@@ -1,29 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="WAfQ8Ukar-cZVK8eQBJ2MjheJGQuAveD79Ny6ctEXtQ" />
-    <meta name="description" content="Find OJT and internship opportunities near you. Browse hundreds of companies offering on-the-job training for Filipino students.">
-    <meta name="keywords" content="OJT, internship, on-the-job training, Philippines, student jobs">
-    <meta property="og:title" content="ojtFinder | Find OJT Internships">
-    <meta property="og:description" content="Browse OJT opportunities near you">
-    <meta property="og:image" content="https://ojtfinder.42web.io/public/of_logo.png">
-    <meta property="og:url" content="https://ojtfinder.42web.io">
-    <meta property="og:type" content="website">
+    @include('partials.meta')
     <title>ojtFinder | Messages</title>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZEMJ5KJY75"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-ZEMJ5KJY75');
-    </script>
+    @include('partials.gtag')
 
     @vite('resources/css/app.css')
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ 'public/of_logo.png' }}?v=1">
     <style>
         .glass-sidebar { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); }
         .chat-container { background: #0b0f1a; background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.02) 1px, transparent 0); background-size: 32px 32px; }

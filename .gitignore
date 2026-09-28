@@ -23,3 +23,23 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Test files
+test.html
+
+# Spell check configuration
+.cspell
+
+# Custom error pages
+/error
+
+# Lock files (optional - uncomment if you don't want to commit them)
+# package-lock.json
+
+# IDE specific files
+*.swp
+*.swo
+*~
+
+# OS specific files
+.Trashes
